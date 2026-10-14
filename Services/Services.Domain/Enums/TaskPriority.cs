@@ -1,4 +1,4 @@
-﻿namespace Services.Domain.Enums;
+﻿ namespace Services.Domain.Enums;
 
 public enum TaskPriority
 {
