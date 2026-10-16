@@ -11,7 +11,6 @@ using Services.Infrastructure.Identity;
 using Services.Infrastructure.Persistence;
 using Services.Infrastructure.Repositories;
 using System.IdentityModel.Tokens.Jwt;
-using System.Text;
 
 namespace Services.Infrastructure;
 
@@ -120,8 +119,9 @@ public static class DependencyInjection
         services.AddSingleton<JwtTokenGenerator>();
         services.AddScoped<IAuthService, AuthService>();
 
+        // Repositories
+        services.AddScoped<IProjectRepository, ProjectRepository>();
         services.AddScoped<ITaskRepository, TaskRepository>();
-        services.AddScoped<ITaskService, TaskService>();
 
         return services;
     }

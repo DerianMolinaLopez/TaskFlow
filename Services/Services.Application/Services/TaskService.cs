@@ -166,86 +166,12 @@ public sealed class TaskService(
 
         ValidateUserId(userId);
 
-        if (query.Page < 1)
-        {
-            throw new ValidationException(
-                "La página debe ser mayor o igual a 1."
-            );
-        }
+        var normalizedQuery = ValidateAndNormalizeQuery(query);
 
-        if (query.PageSize < 1 || query.PageSize > 100)
-        {
-            throw new ValidationException(
-                "El tamaño de página debe estar entre 1 y 100."
-            );
-        }
-
-        if (!string.IsNullOrWhiteSpace(query.Search)
-            && query.Search.Trim().Length > 200)
-        {
-            throw new ValidationException(
-                "La búsqueda no puede superar los 200 caracteres."
-            );
-        }
-
-        if (query.Status.HasValue
-            && !Enum.IsDefined(query.Status.Value))
-        {
-            throw new ValidationException(
-                "El estado indicado no es válido."
-            );
-        }
-
-        if (query.Priority.HasValue
-            && !Enum.IsDefined(query.Priority.Value))
-        {
-            throw new ValidationException(
-                "La prioridad indicada no es válida."
-            );
-        }
-
-        var sortBy = query.SortBy.Trim().ToLowerInvariant();
-
-        var allowedSortFields = new[]
-        {
-            "createdat",
-            "title",
-            "duedate",
-            "priority",
-            "status"
-        };
-
-        if (!allowedSortFields.Contains(sortBy))
-        {
-            throw new ValidationException(
-                "El campo de ordenamiento no es válido."
-            );
-        }
-
-        var sortDirection = query.SortDirection.Trim().ToLowerInvariant();
-
-        if (sortDirection is not ("asc" or "desc"))
-        {
-            throw new ValidationException(
-                "La dirección debe ser 'asc' o 'desc'."
-            );
-        }
-
-        var normalizedQuery = query with
-        {
-            Search = string.IsNullOrWhiteSpace(query.Search)
-                ? null
-                : query.Search.Trim(),
-            SortBy = sortBy,
-            SortDirection = sortDirection
-        };
-
-        var (items, totalCount) =
-            await taskRepository.GetPagedByUserIdAsync(
+        var (items, totalCount) = await taskRepository.GetPagedByUserIdAsync(
                 userId,
                 normalizedQuery,
-                cancellationToken
-            );
+                cancellationToken);
 
         var totalPages = (int)Math.Ceiling(
             totalCount / (double)query.PageSize
@@ -258,6 +184,51 @@ public sealed class TaskService(
             TotalCount: totalCount,
             TotalPages: totalPages
         );
+    }
+
+    public async Task<PagedResponse<TaskResponse>> GetByProjectIdAsync(
+    Guid userId,
+    Guid projectId,
+    TaskQueryRequest query,
+    CancellationToken cancellationToken = default)
+    {
+        ValidateUserId(userId);
+
+        if (projectId == Guid.Empty)
+        {
+            throw new ValidationException(
+                "El identificador del proyecto no es válido.");
+        }
+
+        var normalizedQuery = ValidateAndNormalizeQuery(query);
+
+        var projectExists = await taskRepository.ProjectExistsAsync(
+            projectId,
+            userId,
+            cancellationToken);
+
+        if (!projectExists)
+        {
+            throw new KeyNotFoundException(
+                "El proyecto no existe o no pertenece al usuario.");
+        }
+
+        var (items, totalCount) =
+            await taskRepository.GetPagedByProjectIdAsync(
+                projectId,
+                userId,
+                normalizedQuery,
+                cancellationToken);
+
+        var totalPages = (int)Math.Ceiling(
+            totalCount / (double)normalizedQuery.PageSize);
+
+        return new PagedResponse<TaskResponse>(
+            Items: items.Select(MapToResponse).ToList(),
+            Page: normalizedQuery.Page,
+            PageSize: normalizedQuery.PageSize,
+            TotalCount: totalCount,
+            TotalPages: totalPages);
     }
 
     private async Task<TaskItem> GetOwnedTaskAsync(
@@ -277,26 +248,32 @@ public sealed class TaskService(
     }
 
     private async Task ValidateProjectAsync(
-        Guid? projectId,
-        Guid userId,
-        CancellationToken cancellationToken)
+    Guid? projectId,
+    Guid userId,
+    CancellationToken cancellationToken)
     {
-        if (projectId is null)
+        if (!projectId.HasValue)
             return;
+
+        if (projectId.Value == Guid.Empty)
+        {
+            throw new ValidationException(
+                "El identificador del proyecto no es válido.");
+        }
 
         var exists = await taskRepository.ProjectExistsAsync(
             projectId.Value,
             userId,
-            cancellationToken
-        );
+            cancellationToken);
 
         if (!exists)
         {
-            throw new ValidationException(
-                "El proyecto indicado no existe o no pertenece al usuario."
-            );
+            throw new KeyNotFoundException(
+                "El proyecto no existe o no pertenece al usuario.");
         }
     }
+
+
 
     private static TaskDescription? CreateDescription(string? description)
     {
@@ -336,6 +313,83 @@ public sealed class TaskService(
                 "La prioridad indicada no es válida."
             );
         }
+    }
+
+    private static TaskQueryRequest ValidateAndNormalizeQuery(
+    TaskQueryRequest query)
+    {
+        ArgumentNullException.ThrowIfNull(query);
+
+        if (query.Page < 1)
+        {
+            throw new ValidationException(
+                "La página debe ser mayor o igual a 1.");
+        }
+
+        if (query.PageSize < 1 || query.PageSize > 100)
+        {
+            throw new ValidationException(
+                "El tamaño de página debe estar entre 1 y 100.");
+        }
+
+        if (!string.IsNullOrWhiteSpace(query.Search)
+            && query.Search.Trim().Length > 200)
+        {
+            throw new ValidationException(
+                "La búsqueda no puede superar los 200 caracteres.");
+        }
+
+        if (query.Status.HasValue
+            && !Enum.IsDefined(query.Status.Value))
+        {
+            throw new ValidationException(
+                "El estado indicado no es válido.");
+        }
+
+        if (query.Priority.HasValue
+            && !Enum.IsDefined(query.Priority.Value))
+        {
+            throw new ValidationException(
+                "La prioridad indicada no es válida.");
+        }
+
+        var sortBy = query.SortBy?.Trim().ToLowerInvariant();
+
+        var allowedSortFields = new[]
+        {
+        "createdat",
+        "title",
+        "duedate",
+        "priority",
+        "status"
+    };
+
+        if (string.IsNullOrWhiteSpace(sortBy)
+            || !allowedSortFields.Contains(sortBy))
+        {
+            throw new ValidationException(
+                "El campo de ordenamiento no es válido.");
+        }
+
+        var sortDirection = query.SortDirection?
+            .Trim()
+            .ToLowerInvariant();
+
+        if (sortDirection is not ("asc" or "desc"))
+        {
+            throw new ValidationException(
+                "La dirección debe ser 'asc' o 'desc'.");
+        }
+
+        return query with
+        {
+            Search = string.IsNullOrWhiteSpace(query.Search)
+                ? null
+                : query.Search.Trim(),
+
+            SortBy = sortBy,
+            SortDirection = sortDirection
+        };
     }
 
     private static TaskResponse MapToResponse(TaskItem task)

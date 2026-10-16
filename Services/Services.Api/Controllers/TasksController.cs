@@ -36,6 +36,10 @@ public sealed class TasksController(
                 task
             );
         }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { error = ex.Message });
+        }
         catch (ValidationException ex)
         {
             return BadRequest(new { error = ex.Message });
@@ -111,9 +115,9 @@ public sealed class TasksController(
 
             return Ok(task);
         }
-        catch (KeyNotFoundException)
+        catch (KeyNotFoundException ex)
         {
-            return NotFound(new { error = "La tarea no existe." });
+            return NotFound(new { error = ex.Message });
         }
         catch (ValidationException ex)
         {

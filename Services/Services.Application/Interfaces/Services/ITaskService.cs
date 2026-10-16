@@ -40,4 +40,10 @@ public interface ITaskService
         Guid userId,
         TaskQueryRequest query,
         CancellationToken cancellationToken = default);
+
+    Task<PagedResponse<TaskResponse>> GetByProjectIdAsync(
+        Guid userId,
+        Guid projectId,
+        TaskQueryRequest query,
+        CancellationToken cancellationToken = default);
 }

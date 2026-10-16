@@ -35,4 +35,10 @@ public interface ITaskRepository
         Guid userId,
         TaskQueryRequest query,
         CancellationToken cancellationToken = default);
+
+    Task<(IReadOnlyList<TaskItem> Items, int TotalCount)> GetPagedByProjectIdAsync(
+        Guid projectId,
+        Guid userId,
+        TaskQueryRequest query,
+        CancellationToken cancellationToken = default);
 }
