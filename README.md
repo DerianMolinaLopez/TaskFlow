@@ -49,7 +49,7 @@ API REST para la gestión de tareas y proyectos, desarrollada con ASP.NET Core y
 La solución está organizada en los siguientes proyectos:
 
 ```text
-TaskFlow/
+Services/
 ├── Services.Api/
 │   └── Controladores, endpoints y configuración de la API
 ├── Services.Application/
@@ -83,8 +83,8 @@ Para ejecutar el proyecto necesitas:
 1. Clona el repositorio:
 
    ```bash
-   git clone <URL_DEL_REPOSITORIO>
-   cd <DIRECTORIO_DEL_PROYECTO>
+   git clone https://github.com/jejejesus/TaskFlow
+   cd TaskFlow
    ```
 
 2. Configura la cadena de conexión de PostgreSQL y los parámetros de autenticación JWT según la configuración de `Services.Api`.
