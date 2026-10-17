@@ -1,4 +1,5 @@
 ﻿using Services.Domain.Entities;
+using Services.Domain.Enums;
 
 namespace Services.Application.Interfaces.Repositories;
 
@@ -27,5 +28,10 @@ public interface IProjectRepository
 
     Task DeleteAsync(
         Project project,
+        CancellationToken cancellationToken = default);
+
+    Task<IReadOnlyDictionary<TaskCurrentStatus, int>> GetTaskCountsByProjectAsync(
+        Guid projectId,
+        Guid userId,
         CancellationToken cancellationToken = default);
 }

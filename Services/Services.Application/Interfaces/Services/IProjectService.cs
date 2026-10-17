@@ -28,4 +28,9 @@ public interface IProjectService
         Guid userId,
         Guid projectId,
         CancellationToken cancellationToken = default);
+
+    Task<ProjectSummaryResponse> GetSummaryAsync(
+    Guid userId,
+    Guid projectId,
+    CancellationToken cancellationToken = default);
 }

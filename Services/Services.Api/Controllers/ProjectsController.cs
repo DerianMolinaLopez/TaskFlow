@@ -171,4 +171,28 @@ public sealed class ProjectsController(
 
         return userId;
     }
+
+    [HttpGet("{id:guid}/summary")]
+    public async Task<ActionResult<ProjectSummaryResponse>> GetSummary(
+    Guid id,
+    CancellationToken cancellationToken)
+    {
+        try
+        {
+            var summary = await projectService.GetSummaryAsync(
+                GetCurrentUserId(),
+                id,
+                cancellationToken);
+
+            return Ok(summary);
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { error = ex.Message });
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { error = ex.Message });
+        }
+    }
 }

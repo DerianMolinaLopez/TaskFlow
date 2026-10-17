@@ -1,6 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Services.Application.Interfaces.Repositories;
 using Services.Domain.Entities;
+using Services.Domain.Enums;
 using Services.Infrastructure.Persistence;
 
 namespace Services.Infrastructure.Repositories;
@@ -70,5 +71,27 @@ public sealed class ProjectRepository(
         dbContext.Projects.Remove(project);
 
         await dbContext.SaveChangesAsync(cancellationToken);
+    }
+
+    public async Task<IReadOnlyDictionary<TaskCurrentStatus, int>> GetTaskCountsByProjectAsync(
+        Guid projectId,
+        Guid userId,
+        CancellationToken cancellationToken = default)
+    {
+        return await dbContext.Tasks
+            .AsNoTracking()
+            .Where(task =>
+                task.ProjectId == projectId &&
+                task.UserId == userId)
+            .GroupBy(task => task.Status)
+            .Select(group => new
+            {
+                Status = group.Key,
+                Count = group.Count()
+            })
+            .ToDictionaryAsync(
+                item => item.Status,
+                item => item.Count,
+                cancellationToken);
     }
 }

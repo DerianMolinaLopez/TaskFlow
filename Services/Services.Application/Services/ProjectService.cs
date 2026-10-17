@@ -1,9 +1,10 @@
-﻿using System.ComponentModel.DataAnnotations;
-using Services.Application.DTOs.Projects;
+﻿using Services.Application.DTOs.Projects;
 using Services.Application.Interfaces.Repositories;
 using Services.Application.Interfaces.Services;
 using Services.Domain.Entities;
+using Services.Domain.Enums;
 using Services.Domain.ValueObjects;
+using System.ComponentModel.DataAnnotations;
 
 namespace Services.Application.Services;
 
@@ -176,4 +177,57 @@ public sealed class ProjectService(
             UpdatedAt: project.UpdatedAt
         );
     }
+
+    public async Task<ProjectSummaryResponse> GetSummaryAsync(
+        Guid userId,
+        Guid projectId,
+        CancellationToken cancellationToken = default)
+    {
+        if (userId == Guid.Empty)
+            throw new ArgumentException(
+                "El identificador del usuario es obligatorio.",
+                nameof(userId));
+
+        if (projectId == Guid.Empty)
+            throw new ArgumentException(
+                "El identificador del proyecto es obligatorio.",
+                nameof(projectId));
+
+        var project = await projectRepository.GetByIdAsync(
+            projectId,
+            userId,
+            cancellationToken);
+
+        if (project is null)
+            throw new KeyNotFoundException(
+                "El proyecto no existe o no pertenece al usuario.");
+
+        var taskCounts = await projectRepository.GetTaskCountsByProjectAsync(
+            projectId,
+            userId,
+            cancellationToken);
+
+        var totalTasks = taskCounts.Values.Sum();
+
+        var completedTasks = taskCounts.GetValueOrDefault(
+            TaskCurrentStatus.Done,
+            0);
+
+        var pendingTasks = totalTasks - completedTasks;
+
+        var progressPercentage = totalTasks == 0
+            ? 0m
+            : Math.Round(
+                completedTasks * 100m / totalTasks,
+                2);
+
+        return new ProjectSummaryResponse(
+            ProjectId: project.Id,
+            ProjectName: project.Name.Value,
+            TotalTasks: totalTasks,
+            CompletedTasks: completedTasks,
+            PendingTasks: pendingTasks,
+            ProgressPercentage: progressPercentage);
+    }
+
 }
