@@ -1,68 +1,57 @@
 "use client";
 
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import Link from "next/link";
+import { Suspense } from "react";
+import { usePathname } from "next/navigation";
 import {
   SidebarGroup,
-  SidebarGroupLabel,
   SidebarMenu,
-  SidebarMenuAction,
   SidebarMenuButton,
   SidebarMenuItem,
-  SidebarMenuSub,
-  SidebarMenuSubButton,
-  SidebarMenuSubItem,
 } from "@/components/ui/sidebar/sidebar";
-import { HugeiconsIcon } from "@hugeicons/react";
-import { ArrowRight01Icon } from "@hugeicons/core-free-icons";
 
-export function NavMain({
-  items,
-}: {
-  items: {
-    title: string;
-    url: string;
-    icon: React.ReactNode;
-    isActive?: boolean;
-    items?: {
-      title: string;
-      url: string;
-    }[];
-  }[];
-}) {
+type NavItem = {
+  title: string;
+  url: string;
+  icon: React.ReactNode;
+};
+
+function NavMenu({ items, pathname }: { items: NavItem[]; pathname: string | null }) {
   return (
-    <SidebarGroup>
-      {/*<SidebarGroupLabel>Platform</SidebarGroupLabel>*/}
-      <SidebarMenu>
-        {items.map((item) => (
-          <Collapsible key={item.title} defaultOpen={item.isActive} render={<SidebarMenuItem />}>
-            <SidebarMenuButton tooltip={item.title} render={<a href={item.url} />}>
+    <SidebarMenu>
+      {items.map((item) => {
+        const isActive =
+          pathname !== null &&
+          (item.url === "/" ? pathname === "/" : pathname.startsWith(item.url));
+        return (
+          <SidebarMenuItem key={item.title}>
+            <SidebarMenuButton
+              tooltip={item.title}
+              isActive={isActive}
+              render={<Link href={item.url} />}
+            >
               {item.icon}
               <span>{item.title}</span>
             </SidebarMenuButton>
-            {item.items?.length ? (
-              <>
-                <CollapsibleTrigger
-                  render={<SidebarMenuAction className="aria-expanded:rotate-90" />}
-                >
-                  <HugeiconsIcon icon={ArrowRight01Icon} strokeWidth={2} />
-                  <span className="sr-only">Toggle</span>
-                </CollapsibleTrigger>
-                <CollapsibleContent>
-                  <SidebarMenuSub>
-                    {item.items?.map((subItem) => (
-                      <SidebarMenuSubItem key={subItem.title}>
-                        <SidebarMenuSubButton render={<a href={subItem.url} />}>
-                          <span>{subItem.title}</span>
-                        </SidebarMenuSubButton>
-                      </SidebarMenuSubItem>
-                    ))}
-                  </SidebarMenuSub>
-                </CollapsibleContent>
-              </>
-            ) : null}
-          </Collapsible>
-        ))}
-      </SidebarMenu>
+          </SidebarMenuItem>
+        );
+      })}
+    </SidebarMenu>
+  );
+}
+
+function ActiveNavMenu({ items }: { items: NavItem[] }) {
+  return <NavMenu items={items} pathname={usePathname()} />;
+}
+
+// usePathname() solo existe en tiempo de ejecución; el Suspense permite
+// prerenderizar el menú sin el estado activo (requisito de cacheComponents).
+export function NavMain({ items }: { items: NavItem[] }) {
+  return (
+    <SidebarGroup>
+      <Suspense fallback={<NavMenu items={items} pathname={null} />}>
+        <ActiveNavMenu items={items} />
+      </Suspense>
     </SidebarGroup>
   );
 }
